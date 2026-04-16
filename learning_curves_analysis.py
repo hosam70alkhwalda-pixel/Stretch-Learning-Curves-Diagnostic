@@ -137,7 +137,7 @@ def main():
             y_train,
             cv=5,
             train_sizes=TRAIN_SIZES,
-            scoring="accuracy",
+            scoring="roc_auc",
             n_jobs=-1
         )
 
@@ -173,7 +173,7 @@ def main():
     # =========================
     plt.title("Learning Curves - Logistic Regression Comparison")
     plt.xlabel("Training Examples")
-    plt.ylabel("Accuracy")
+    plt.ylabel("ROC-AUC")
     plt.grid(True)
     plt.legend(fontsize=9)
     plt.tight_layout()
