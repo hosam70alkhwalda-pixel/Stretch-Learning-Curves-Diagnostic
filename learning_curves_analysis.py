@@ -9,9 +9,9 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 
-# =========================
+
 # FEATURES
-# =========================
+
 NUMERIC_FEATURES = [
     "tenure",
     "monthly_charges",
@@ -29,22 +29,21 @@ CATEGORICAL_FEATURES = [
     "payment_method"
 ]
 
-# =========================
+
 # TRAIN SIZES
-# =========================
+
 TRAIN_SIZES = np.linspace(0.1, 1.0, 9)
 
-# =========================
+
 # PALETTE (COLORS)
-# =========================
+
 PALETTE = {
-    "LR - default regularization (C=1)": ("#1F77B4", "#AEC7E8"),   # blue
-    "LR - strong regularization (C=0.01)": ("#FF7F0E", "#FFBB78") # orange
+    "LR - default regularization (C=1)": ("#1F77B4", "#AEC7E8"),
+    "LR - strong regularization (C=0.01)": ("#FF7F0E", "#FFBB78")
 }
 
-# =========================
 # PREPROCESSOR
-# =========================
+
 def build_preprocessor():
     numeric_transformer = StandardScaler()
 
@@ -62,9 +61,9 @@ def build_preprocessor():
 
     return preprocessor
 
-# =========================
+
 # MODELS
-# =========================
+
 def define_models():
     models = {
         "LR - default regularization (C=1)": Pipeline([
@@ -90,12 +89,11 @@ def define_models():
 
     return models
 
-# =========================
+
 # MAIN
-# =========================
+
 def main():
 
-    # load dataset safely
     file_path = os.path.join(os.path.dirname(__file__), "telecom_churn.csv")
 
     if not os.path.exists(file_path):
@@ -105,15 +103,13 @@ def main():
 
     df = pd.read_csv(file_path)
 
-    # clean numeric column
     df["total_charges"] = pd.to_numeric(df["total_charges"], errors="coerce")
     df = df.dropna()
 
-    # split features/target
     X = df[NUMERIC_FEATURES + CATEGORICAL_FEATURES]
     y = df["churned"]
+    print(y.value_counts(normalize=True))
 
-    # train/test split
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         y,
@@ -124,61 +120,65 @@ def main():
 
     models = define_models()
 
-    plt.figure(figsize=(12, 7))
+  
+    # PLOTS (2 METRICS)
 
-    # =========================
-    # LEARNING CURVES
-    # =========================
-    for name, model in models.items():
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
 
-        train_sizes, train_scores, val_scores = learning_curve(
-            model,
-            X_train,
-            y_train,
-            cv=5,
-            train_sizes=TRAIN_SIZES,
-            scoring="roc_auc",
-            n_jobs=-1
-        )
+    metrics = {
+        "ROC-AUC": "roc_auc",
+        "PR-AUC": "average_precision"
+    }
 
-        train_mean = train_scores.mean(axis=1)
-        val_mean = val_scores.mean(axis=1)
+    for ax, (metric_name, scoring) in zip(axes, metrics.items()):
 
-        train_color, val_color = PALETTE[name]
+        for name, model in models.items():
 
-        # train curve
-        plt.plot(
-            train_sizes,
-            train_mean,
-            linestyle="--",
-            color=train_color,
-            label=f"{name} (train)"
-        )
+            train_sizes, train_scores, val_scores = learning_curve(
+                model,
+                X_train,
+                y_train,
+                cv=5,
+                train_sizes=TRAIN_SIZES,
+                scoring=scoring,
+                n_jobs=-1
+            )
 
-        # validation curve
-        plt.plot(
-            train_sizes,
-            val_mean,
-            color=val_color,
-            label=f"{name} (val)"
-        )
+            train_mean = train_scores.mean(axis=1)
+            val_mean = val_scores.mean(axis=1)
 
-        print(f"\n{name}")
-        print(f"Final Train Score: {train_mean[-1]:.3f}")
-        print(f"Final Validation Score: {val_mean[-1]:.3f}")
-        print("-" * 40)
+            train_color, val_color = PALETTE[name]
 
-    # =========================
-    # PLOT STYLE
-    # =========================
-    plt.title("Learning Curves - Logistic Regression Comparison")
-    plt.xlabel("Training Examples")
-    plt.ylabel("ROC-AUC")
-    plt.grid(True)
-    plt.legend(fontsize=9)
+            # train
+            ax.plot(
+                train_sizes,
+                train_mean,
+                linestyle="--",
+                color=train_color,
+                label=f"{name} (train)"
+            )
+
+            # validation
+            ax.plot(
+                train_sizes,
+                val_mean,
+                color=val_color,
+                label=f"{name} (val)"
+            )
+
+            print(f"\n{name} - {metric_name}")
+            print(f"Final Train Score: {train_mean[-1]:.3f}")
+            print(f"Final Validation Score: {val_mean[-1]:.3f}")
+            print("-" * 40)
+
+        ax.set_title(f"Learning Curve ({metric_name})")
+        ax.set_xlabel("Training Examples")
+        ax.set_ylabel(metric_name)
+        ax.grid(True)
+        ax.legend(fontsize=8)
+
     plt.tight_layout()
-
-    plt.savefig("learning_curves.png")
+    plt.savefig("learning_curves_both_metrics.png")
     plt.show()
 
 
